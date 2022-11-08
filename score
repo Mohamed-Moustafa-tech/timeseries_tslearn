@@ -1,0 +1,21 @@
+
+
+from turtle import shape
+import pandas as pd
+import tslearn.metrics 
+df = pd.read_csv('~/clustering/Network-Clustering-timeseries/Sample.txt', sep='\t')
+#df.head()
+GE = df.set_index('Geneid')
+
+
+GE=GE.transpose()
+GE= GE.to_numpy().reshape(71,2,58051)
+        #Distance = tslearn.cdist_dtw(self.ge[labels],self.ge)
+        #print(GE[labels])
+        #Distance = tslearn.metrics.cdist_dtw(GE[labels],GE)
+Distance = tslearn.metrics.cdist_dtw(GE)
+x= Distance.shape
+print(x)
+inertia = Distance.min(axis=0) #.sum()
+print(inertia)
+#print(size(Distance), inertia)

@@ -1,0 +1,62 @@
+def run_ls(self):
+    T0 = self.T
+    T = T0
+    score_max = 0
+    best_nodes = []
+    best_labels = []
+    # initialization
+    if self.seed is None:
+        nodes = []
+        # for  whatever reason dfs sometimes returns nothing
+        no_type = True
+        while no_type:
+            nodes = self.dfs(self.G.vertex(np.random.choice(self.genes, 1)[0]), self.init_size)
+            if nodes is not None:
+                no_type = False
+    else:
+        nodes = self.seed
+
+    if len(self.opt_pat) != m:
+        labels = np.random.choice([0, 1], len(pats)) #should we assign labels randomly first or
+    else:
+        labels = np.array(self.opt_pat)
+        
+    start_score = self.score(nodes, labels)
+    score0 = start_score
+    scores = [start_score]
+    solutions = dict()
+    nodes_keys = self.to_key(nodes)
+    solutions[nodes_keys] = ""
+
+
+    # loop for the iterations and score calculations
+    count = 0
+    for it in range(self.max_iter):
+        if len(self.opt_pat) != m:
+            if count != 0:
+                labels, score1 = self.ls_on_patients(nodes)
+            else:
+                labels, score1 = self.ls_on_patients(nodes)
+        else:
+            score1 = score0
+        nodes_backup = nodes
+        labels_backup = labels
+        nodes, score2, move_genes = self.ls_on_genes(nodes, labels, solutions, score1, T)
+        if not self.is_connected(nodes):
+            print("something is wrong, network is disconnected")
+            return nodes_backup, labels_backup, 0
+        T = T0 * (0.9 ** it)  # cool down
+        if self.verbose:
+            print(it)
+        solutions[self.to_key(nodes)] = ""
+        scores.append(score2)
+        score0 = score2
+        if score2 > score_max:
+            score_max = score2
+            best_nodes = nodes
+            best_labels = labels
+        count = count + 1
+        if not move_genes:
+            break
+    return best_nodes, best_labels, score_max
+    
