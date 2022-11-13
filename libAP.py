@@ -6,6 +6,7 @@ import graph_tool as gt
 from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
+from tslearn.barycenters import dtw_barycenter_averaging
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -135,7 +136,7 @@ class LSOprimizer:
 
         return ap
 
-    def score(self,nodes):
+    def score(self,nodes,labels):
         """
         scores  given solution which is defined as a subnetwork and patient clusters
         :param nodes: list of nodes used in the solution
@@ -149,10 +150,22 @@ class LSOprimizer:
         #Distance = tslearn.cdist_dtw(self.ge[labels],self.ge)
         #print(GE[labels])
         #Distance = tslearn.metrics.cdist_dtw(GE[labels],GE)
+
+        #cluster centers
+        #update centroids 
+        for k in range(self.n_clusters):
+            if self.metric == "dtw":
+                self.cluster_centers_[k] = dtw_barycenter_averaging( X=GE[labels== k],
+                    barycenter_size=None,
+                    init_barycenter=self.cluster_centers_[k],
+                    metric_params=metric_params,
+                    verbose=False)
+
+
             Distance = tslearn.metrics.cdist_dtw(GE)
             inertia = Distance.min(axis=1).sum()
         else:
-            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes])
+            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
             inertia = Distance.min(axis=1).sum()
         return inertia
 
@@ -359,7 +372,7 @@ class LSOprimizer:
                    **self.subst(nodes, labels, AP)}
         # first select the highest scoring solution which doesn't lead to the same set of nodes
         while not move:
-            action = max(results.items(), key=operator.itemgetter(1))[0]
+            action = min(results.items(), key=operator.itemgetter(1))[0]
             score1 = results[action]
             # check if the solution is feasible
             nodes_new = self.do_action_nodes(action, nodes)
@@ -372,7 +385,7 @@ class LSOprimizer:
                     print("no more feasible solutions")
                     return nodes, score0, move
 
-        delta = score0 - score1
+        delta = score1 - score0
         if delta < 0:  # move on
             print(action)
             print("Score after genes LS {0}".format(score1))
@@ -439,7 +452,7 @@ class LSOprimizer:
 
         T0 = self.T
         T = T0
-        score_max = 0
+        score_min = 0
         best_nodes = []
         best_labels = []
         #n, m = self.ge.shape
@@ -489,16 +502,16 @@ class LSOprimizer:
              #   convergence_plot(scores)
 
             score0 = score2
-            if score2 > score_max:
-                score_max = score2
+            if score2 > score_min:
+                score_min = score2
                 best_nodes = nodes
                 best_labels = labels
-                print('iteration number{}, best nodes:{}, best_labels:{}, score_max:{}'.format(it,best_nodes,best_labels,score_max))
+                print('iteration number{}, best nodes:{}, best_labels:{}, score_min:{}'.format(it,best_nodes,best_labels,score_min))
             else:
                 print('iteration number{}, nodes:{}, labels:{}, score:{}'.format(it,nodes,labels,score2))
             count = count + 1
             if not move_genes:
                 break
            
-        return best_nodes, best_labels, score_max
+        return best_nodes, best_labels, score_min
 
