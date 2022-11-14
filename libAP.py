@@ -7,6 +7,7 @@ from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
 from tslearn.barycenters import dtw_barycenter_averaging
+from tslearn.clistering.kmeans import _k_init_metric
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -146,22 +147,36 @@ class LSOprimizer:
          #Compute distances to center candidates
         GE=self.ge.transpose()
         GE= GE.to_numpy().reshape(71,2,58051)
-        if nodes is None:   
-        #Distance = tslearn.cdist_dtw(self.ge[labels],self.ge)
-        #print(GE[labels])
-        #Distance = tslearn.metrics.cdist_dtw(GE[labels],GE)
-
-        #cluster centers
-        #update centroids 
+        #
+        initialize centroids
+        # function to update the centroids
         for k in range(self.n_clusters):
             if self.metric == "dtw":
-                self.cluster_centers_[k] = dtw_barycenter_averaging( X=GE[labels== k],
+                cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
                     barycenter_size=None,
-                    init_barycenter=self.cluster_centers_[k],
-                    metric_params=metric_params,
+                    init_barycenter=cluster_centers,
+                    metric_params=None,
                     verbose=False)
+        if nodes is None:   
+      cluster_centers= None
+    if cluster_centers is None:
+        cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
+                                                   barycenter_size=None,
+                                                   init_barycenter=None,
+                                                   metric_params=None,
+                                                   verbose=False)
+     else:
+        cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
+                                                   barycenter_size=None,
+                                                   init_barycenter=cluster_centers,
+                                                   metric_params=None,
+                                                   verbose=False)
 
+        
 
+        #cluster centers
+        cluster_centers=_k_init_metric(GE,2,metric="dtw",)
+        
             Distance = tslearn.metrics.cdist_dtw(GE)
             inertia = Distance.min(axis=1).sum()
         else:
