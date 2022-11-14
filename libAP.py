@@ -13,13 +13,14 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 
 class LSOprimizer:
-    def __init__(self, GE, G, pat, L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
+    def __init__(self, GE, G, pat,cluster_centers= None L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
                  init_size=None, seed=None, verbose=True):
         """
         Given a graph G and gene expression array GE finds the optimal subnetwork in G of size at least L_min and
         at most L_max that can provide the optimal patients clustering in k clusters.
         :param GE: pandas DatFrame with gene expression
         :param G: graphml graph with PPI network
+        :param cluster_centers: centroids with default as None
         :param L_min: minimal desired solution subnetwork size
         :param L_max: maximal desired solution subnetwork size
         :param T: temprature parameter for SA
@@ -150,16 +151,9 @@ class LSOprimizer:
         #
         initialize centroids
         # function to update the centroids
-        for k in range(self.n_clusters):
-            if self.metric == "dtw":
-                cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
-                    barycenter_size=None,
-                    init_barycenter=cluster_centers,
-                    metric_params=None,
-                    verbose=False)
-        if nodes is None:   
-      cluster_centers= None
-    if cluster_centers is None:
+         
+        
+        if cluster_centers is None:
         cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
                                                    barycenter_size=None,
                                                    init_barycenter=None,
@@ -174,9 +168,8 @@ class LSOprimizer:
 
         
 
-        #cluster centers
-        cluster_centers=_k_init_metric(GE,2,metric="dtw",)
-        
+      
+         if nodes is None:
             Distance = tslearn.metrics.cdist_dtw(GE)
             inertia = Distance.min(axis=1).sum()
         else:
