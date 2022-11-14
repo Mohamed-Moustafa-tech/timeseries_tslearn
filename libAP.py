@@ -7,7 +7,7 @@ from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
 from tslearn.barycenters import dtw_barycenter_averaging
-from tslearn.clustering.kmeans import _k_init_metric
+from tslearn.clustering.kmeans import _k_init_metric as centroid_init
 from tslearn.clustring.utils import _compute_inertia
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -139,7 +139,7 @@ class LSOprimizer:
 
         return ap
 
-    def score(self,nodes,labels):
+    def score(self,nodes,labels,cluster_centers):
         """
         scores  given solution which is defined as a subnetwork and patient clusters
         :param nodes: list of nodes used in the solution
@@ -152,29 +152,27 @@ class LSOprimizer:
         #
         initialize centroids
         # function to update the centroids
-         
+        # define function called cdist metric which includes the 3 different metrices dtw,softdtw and euclidean
+        #   
+        # intialization of cluster centers
         
         if cluster_centers is None:
-        cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
-                                                   barycenter_size=None,
-                                                   init_barycenter=None,
-                                                   metric_params=None,
-                                                   verbose=False)
-     else:
-        cluster_centers = dtw_barycenter_averaging( GE=GE[labels== k],
+            cluster_centers = centroid_init(GE,k, cdist_metric=metric_fun, random_state=rs)
+        
+        else:
+        cluster_centers1 = dtw_barycenter_averaging( X=GE[labels== k],
                                                    barycenter_size=None,
                                                    init_barycenter=cluster_centers,
                                                    metric_params=None,
                                                    verbose=False)
 
         
-
       
          if nodes is None:
-            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers)
+            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers1)
             inertia = Distance.min(axis=1).sum()
         else:
-            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
+            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers1)
             #inertia = Distance.min(axis=1).sum()
             
            inertia= _compute_inertia(Distance, labels, squared = True)
