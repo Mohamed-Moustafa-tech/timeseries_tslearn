@@ -7,7 +7,8 @@ from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
 from tslearn.barycenters import dtw_barycenter_averaging
-from tslearn.clistering.kmeans import _k_init_metric
+from tslearn.clustering.kmeans import _k_init_metric
+from tslearn.clustring.utils import _compute_inertia
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -170,11 +171,13 @@ class LSOprimizer:
 
       
          if nodes is None:
-            Distance = tslearn.metrics.cdist_dtw(GE)
+            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers)
             inertia = Distance.min(axis=1).sum()
         else:
             Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
-            inertia = Distance.min(axis=1).sum()
+            #inertia = Distance.min(axis=1).sum()
+            
+           inertia= _compute_inertia(Distance, labels, squared = True)
         return inertia
 
        # vs = []
