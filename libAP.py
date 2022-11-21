@@ -14,7 +14,7 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 
 class LSOprimizer:
-    def __init__(self, GE, G, pat,cluster_centers= None, metric="dtw", L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
+    def __init__(self, GE, G, pat,cluster_centers= None, n_clusters= None, metric="dtw", L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
                  init_size=None, seed=None, verbose=True):
         """
         Given a graph G and gene expression array GE finds the optimal subnetwork in G of size at least L_min and
@@ -53,6 +53,7 @@ class LSOprimizer:
         self.ge = GE
         self.genes = list(self.G.get_vertices())
         self.patients = np.array(list(GE.columns))
+        self.n_clusters = len(np.array(list(GE.columns)))
         self.metric=metric
 
     def APUtil(self, u, visited, ap, parent, low, disc, nodes, Time=0):
@@ -153,7 +154,7 @@ class LSOprimizer:
         
         #initialize centroids
         # function to update the centroids
-        # define function called cdist metric which includes the  metrices dtw,softdtw.
+        """ defince a function called metric_fun to include different parameters """
         if metric == "dtw":
                     def metric_fun(x, y):
                         return tslearn.metrics.cdist_dtw(x, y, n_jobs=self.n_jobs,
@@ -162,25 +163,48 @@ class LSOprimizer:
                     def metric_fun(x, y):
                         return tslearn.metrics.cdist_soft_dtw(x, y, **metric_params)
                     
-        # intialization of cluster centers
+       
+        """ define a function to initalize cluster centers """
+        def centers_init(X,n_cluster=k, cdist_metric=metric_fun):
+       
+    
+       """ define a function to updates cluster centers """
+        def update_centroid(self,GE):
+            for k in range(self.n_clusters):
+            if self.metric == "dtw":
+                self.cluster_centers[k] = dtw_barycenter_averaging(
+                    X=GE[self.labels == k],
+                    barycenter_size=None,
+                    init_barycenter=self.cluster_centers_[k],
+                    metric_params=metric_params,
+                    verbose=False)
+            elif self.metric == "softdtw":
+                self.cluster_centers[k] = softdtw_barycenter(
+                    X=GE[self.labels == k],
+                    max_iter=self.max_iter_barycenter,
+                    init=self.cluster_centers[k],
+                    **metric_params)
+            else:
+                self.cluster_centers[k] = euclidean_barycenter(
+                    X=GE[self.labels == k])
+            
+      
+            
         
         if cluster_centers is None:
-            cluster_centers = _k_init_metric(GE,k, cdist_metric=metric_fun, random_state=rs)
+            cluster_centers = centers_init(GE,k, cdist_metric=metric_fun)
+         
         
         else:
-        cluster_centers1 = dtw_barycenter_averaging( X=GE[labels== k],
-                                                   barycenter_size=None,
-                                                   init_barycenter=cluster_centers,
-                                                   metric_params=None,
-                                                   verbose=False)
+            cluster_centers= update_centroid((GE[:,:,nodes])
 
         
       
          if nodes is None:
-            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers1)
-            inertia = Distance.min(axis=1).sum()
+            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers)
+            #inertia = Distance.min(axis=1).sum()
         else:
-            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers1)
+            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
             #inertia = Distance.min(axis=1).sum()
             
            inertia= _compute_inertia(Distance, labels, squared = True)
