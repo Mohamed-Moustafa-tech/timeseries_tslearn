@@ -190,7 +190,14 @@ class LSOprimizer:
             
       
             
-        
+        def compute_inertia(Distance,labels,squared=True):
+            n_ts = distances.shape[0]
+            if squared:
+            return numpy.sum(distances[numpy.arange(n_ts),
+                                   labels] ** 2) / n_ts
+            else:
+                return numpy.sum(distances[numpy.arange(n_ts), labels]) 
+
         if cluster_centers is None:
             cluster_centers = centers_init(GE,k, cdist_metric=metric_fun)
          
@@ -206,8 +213,13 @@ class LSOprimizer:
         else:
             Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
             #inertia = Distance.min(axis=1).sum()
-            
-           inertia= _compute_inertia(Distance, labels, squared = True)
+      
+                                             
+    n_ts = distances.shape[0]
+   
+        return numpy.sum(distances[numpy.arange(n_ts),
+                                   assignments] ** 2) / n_ts
+           inertia= compute_inertia(Distance, labels, squared = True)
         return inertia
 
        # vs = []
