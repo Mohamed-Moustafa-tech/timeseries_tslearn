@@ -7,14 +7,14 @@ from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
 from tslearn.barycenters import euclidean_barycenter, dtw_barycenter_averaging, softdtw_barycenter
-from tslearn.clustering.kmeans import _k_init_metric 
-from tslearn.clustring.utils import _compute_inertia
+#from tslearn.clustering.kmeans import _k_init_metric 
+#from tslearn.clustring.utils import _compute_inertia
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
 
 class LSOprimizer:
-    def __init__(self, GE, G, pat,cluster_centers= None, n_clusters= None, metric="dtw", L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
+    def __init__(self, GE, G, pat,cluster_centers= None, metric="dtw", L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
                  init_size=None, seed=None, verbose=True):
         """
         Given a graph G and gene expression array GE finds the optimal subnetwork in G of size at least L_min and
@@ -53,7 +53,6 @@ class LSOprimizer:
         self.ge = GE
         self.genes = list(self.G.get_vertices())
         self.patients = np.array(list(GE.columns))
-        self.n_clusters = len(np.array(list(GE.columns)))
         self.metric=metric
 
     def APUtil(self, u, visited, ap, parent, low, disc, nodes, Time=0):
@@ -170,56 +169,52 @@ class LSOprimizer:
     
        """ define a function to updates cluster centers """
         def update_centroid(self,GE):
-            for k in range(self.n_clusters):
+            for k in range(self.k):
             if self.metric == "dtw":
-                self.cluster_centers[k] = dtw_barycenter_averaging(
+                cluster_centers[k] = dtw_barycenter_averaging(
                     X=GE[self.labels == k],
                     barycenter_size=None,
                     init_barycenter=self.cluster_centers_[k],
                     metric_params=metric_params,
                     verbose=False)
             elif self.metric == "softdtw":
-                self.cluster_centers[k] = softdtw_barycenter(
+                cluster_centers[k] = softdtw_barycenter(
                     X=GE[self.labels == k],
                     max_iter=self.max_iter_barycenter,
                     init=self.cluster_centers[k],
                     **metric_params)
             else:
-                self.cluster_centers[k] = euclidean_barycenter(
+                cluster_centers[k] = euclidean_barycenter(
                     X=GE[self.labels == k])
-            
+            return cluster_centers
       
-            
-        def compute_inertia(Distance,labels,squared=True):
+    
+    
+         """ define a function that computes inertia """
+        def compute_inertia(distances,labels,squared=True):
             n_ts = distances.shape[0]
             if squared:
-            return numpy.sum(distances[numpy.arange(n_ts),
+                return numpy.sum(distances[numpy.arange(n_ts),
                                    labels] ** 2) / n_ts
             else:
                 return numpy.sum(distances[numpy.arange(n_ts), labels]) 
 
+            
+            
+            
         if cluster_centers is None:
             cluster_centers = centers_init(GE,k, cdist_metric=metric_fun)
-         
-        
         else:
-            cluster_centers= update_centroid((GE[:,:,nodes])
+            cluster_centers= update_centroid(GE[:,:,nodes])
 
         
       
          if nodes is None:
-            Distance = tslearn.metrics.cdist_dtw(GE,cluster_centers)
-            #inertia = Distance.min(axis=1).sum()
+            distances = tslearn.metrics.cdist_dtw(GE,cluster_centers)
         else:
-            Distance = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)
-            #inertia = Distance.min(axis=1).sum()
-      
-                                             
-    n_ts = distances.shape[0]
-   
-        return numpy.sum(distances[numpy.arange(n_ts),
-                                   assignments] ** 2) / n_ts
-           inertia= compute_inertia(Distance, labels, squared = True)
+            distances = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)                                  
+        inertia= compute_inertia(distances, labels, squared = True)
+                                         
         return inertia
 
        # vs = []
