@@ -7,7 +7,7 @@ from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
 from tslearn.barycenters import euclidean_barycenter, dtw_barycenter_averaging, softdtw_barycenter
-from tslearn.clustering.kmeans import _k_init_metric as centroid_init
+from tslearn.clustering.kmeans import _k_init_metric 
 from tslearn.clustring.utils import _compute_inertia
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -150,22 +150,22 @@ class LSOprimizer:
          #Compute distances to center candidates
         GE=self.ge.transpose()
         GE= GE.to_numpy().reshape(71,2,58051)
-        #
-        initialize centroids
+        
+        #initialize centroids
         # function to update the centroids
-        # define function called cdist metric which includes the 3 different metrices dtw,softdtw and euclidean
+        # define function called cdist metric which includes the  metrices dtw,softdtw.
         if metric == "dtw":
                     def metric_fun(x, y):
                         return tslearn.metrics.cdist_dtw(x, y, n_jobs=self.n_jobs,
                                          verbose=self.verbose, **metric_params)
-        elif self.metric == "softdtw":
+        elif metric == "softdtw":
                     def metric_fun(x, y):
-                        return cdist_soft_dtw(x, y, **metric_params)
+                        return tslearn.metrics.cdist_soft_dtw(x, y, **metric_params)
                     
         # intialization of cluster centers
         
         if cluster_centers is None:
-            cluster_centers = centroid_init(GE,k, cdist_metric=metric_fun, random_state=rs)
+            cluster_centers = _k_init_metric(GE,k, cdist_metric=metric_fun, random_state=rs)
         
         else:
         cluster_centers1 = dtw_barycenter_averaging( X=GE[labels== k],
