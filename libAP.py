@@ -6,7 +6,7 @@ import graph_tool as gt
 from utils import *
 from tslearn.clustering import TimeSeriesKMeans
 import tslearn.metrics
-from tslearn.barycenters import dtw_barycenter_averaging
+from tslearn.barycenters import euclidean_barycenter, dtw_barycenter_averaging, softdtw_barycenter
 from tslearn.clustering.kmeans import _k_init_metric as centroid_init
 from tslearn.clustring.utils import _compute_inertia
 
@@ -14,7 +14,7 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 
 class LSOprimizer:
-    def __init__(self, GE, G, pat,cluster_centers= None L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
+    def __init__(self, GE, G, pat,cluster_centers= None, metric="dtw", L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
                  init_size=None, seed=None, verbose=True):
         """
         Given a graph G and gene expression array GE finds the optimal subnetwork in G of size at least L_min and
@@ -53,6 +53,7 @@ class LSOprimizer:
         self.ge = GE
         self.genes = list(self.G.get_vertices())
         self.patients = np.array(list(GE.columns))
+        self.metric=metric
 
     def APUtil(self, u, visited, ap, parent, low, disc, nodes, Time=0):
         """
@@ -153,7 +154,14 @@ class LSOprimizer:
         initialize centroids
         # function to update the centroids
         # define function called cdist metric which includes the 3 different metrices dtw,softdtw and euclidean
-        #   
+        if metric == "dtw":
+                    def metric_fun(x, y):
+                        return tslearn.metrics.cdist_dtw(x, y, n_jobs=self.n_jobs,
+                                         verbose=self.verbose, **metric_params)
+        elif self.metric == "softdtw":
+                    def metric_fun(x, y):
+                        return cdist_soft_dtw(x, y, **metric_params)
+                    
         # intialization of cluster centers
         
         if cluster_centers is None:
