@@ -54,6 +54,7 @@ class LSOprimizer:
         self.genes = list(self.G.get_vertices())
         self.patients = np.array(list(GE.columns))
         self.metric=metric
+        self.cluster_centers=cluster_centers
 
     def APUtil(self, u, visited, ap, parent, low, disc, nodes, Time=0):
         """
@@ -151,8 +152,6 @@ class LSOprimizer:
         GE=self.ge.transpose()
         GE= GE.to_numpy().reshape(71,2,58051)
         
-        #initialize centroids
-        # function to update the centroids
         """ defince a function called metric_fun to include different parameters """
         if metric == "dtw":
                     def metric_fun(x, y):
@@ -172,20 +171,20 @@ class LSOprimizer:
             for k in range(self.k):
             if self.metric == "dtw":
                 cluster_centers[k] = dtw_barycenter_averaging(
-                    X=GE[self.labels == k],
+                    X=GE[self.labels == k,:,nodes],
                     barycenter_size=None,
-                    init_barycenter=self.cluster_centers_[k],
+                    init_barycenter=cluster_centers[k],
                     metric_params=metric_params,
                     verbose=False)
             elif self.metric == "softdtw":
                 cluster_centers[k] = softdtw_barycenter(
-                    X=GE[self.labels == k],
-                    max_iter=self.max_iter_barycenter,
+                    X=GE[self.labels == k,:,nodes],
+                    max_iter=max_iter_barycenter, # check wehther to identify it in the class or not
                     init=self.cluster_centers[k],
                     **metric_params)
             else:
                 cluster_centers[k] = euclidean_barycenter(
-                    X=GE[self.labels == k])
+                    X=GE[self.labels == k],:,nodes)
             return cluster_centers
       
     
@@ -195,7 +194,7 @@ class LSOprimizer:
             n_ts = distances.shape[0]
             if squared:
                 return numpy.sum(distances[numpy.arange(n_ts),
-                                   labels] ** 2) / n_ts
+                                   labels] ** 2) / n_ts 
             else:
                 return numpy.sum(distances[numpy.arange(n_ts), labels]) 
 
