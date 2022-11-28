@@ -3,6 +3,7 @@ import operator
 #from sklearn.cluster import KMeans
 import graph_tool as gt
 from sklearn.cluster._kmeans import _kmeans_plusplus 
+from sklearn.utils import check_random_state
 
 from utils import *
 from tslearn.clustering import TimeSeriesKMeans
@@ -16,8 +17,8 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 
 class LSOprimizer:
-    def __init__(self, GE, G, pat,cluster_centers= None, metric="dtw",L_min, L_max, T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
-                 init_size=None, seed=None, verbose=True):
+    def __init__(self, GE, G, pat, L_min , L_max, cluster_centers= None, metric="dtw", T = 20, max_iter=100, plot=True, opt_pat=None, k=2,
+                 init_size=None, seed=None, verbose=True,random_state=None):
         """
         Given a graph G and gene expression array GE finds the optimal subnetwork in G of size at least L_min and
         at most L_max that can provide the optimal patients clustering in k clusters.
@@ -57,6 +58,7 @@ class LSOprimizer:
         self.patients = np.array(list(GE.columns))
         self.metric= metric
         self.cluster_centers=cluster_centers
+        self.random_state= random_state
 
     def APUtil(self, u, visited, ap, parent, low, disc, nodes, Time=0):
         """
@@ -143,7 +145,7 @@ class LSOprimizer:
 
         return ap
 
-    def score(self,nodes,labels,cluster_centers):
+    def score(self,nodes,labels,cluster_centers=None):
         """
         scores  given solution which is defined as a subnetwork and patient clusters
         :param nodes: list of nodes used in the solution
@@ -170,7 +172,7 @@ class LSOprimizer:
        
         def update_centroid(self,GE):
             """ define a function to updates cluster centers """
-            for k in range(self.k):
+            for k in range(k):
                 if self.metric == "dtw":
                     cluster_centers[k] = dtw_barycenter_averaging(
                         X=GE[self.labels == k,:,nodes],
@@ -185,7 +187,7 @@ class LSOprimizer:
                         **metric_params)
             else:
                 cluster_centers[k] = euclidean_barycenter(
-                    X=GE[self.labels == k,:,nodes])
+                    X=GE[labels == k,:,nodes])
             return cluster_centers
       
     
@@ -204,19 +206,17 @@ class LSOprimizer:
             
             
         if cluster_centers is None:
-            cluster_centers = _k_init_metric(GE,2,cdist_metric=metric_fun,random_state=rs)
+            cluster_centers = _k_init_metric(GE,2,self.random_state,cdist_metric=metric_fun(GE))
         else:
             cluster_centers= update_centroid(GE[:,:,nodes])
 
-        
-      
         if nodes is None:
             distances = tslearn.metrics.cdist_dtw(GE,cluster_centers)
         else:
             distances = tslearn.metrics.cdist_dtw(GE[:,:,nodes],cluster_centers)                                  
         inertia= compute_inertia(distances, labels, squared = True)
                                          
-        return inertia
+        return inertia, cluster_centers
 
        # vs = []
        # centroids = []
@@ -486,7 +486,7 @@ class LSOprimizer:
         #             centroids.append(vals)
         # #            print(vals)
         #         kmeans = KMeans(n_clusters=k, random_state=0, init = np.array(centroids)).fit(ge[nodes, :].T)
-        score = self.score(nodes)
+        score = self.score(labels,nodes)
         print("Reclustered score {}".format(score))
         return labels, score
 
@@ -520,7 +520,7 @@ class LSOprimizer:
             nodes = self.seed
         
         labels = np.random.choice([0, 1], pats)
-        score0 = self.score(nodes)
+        score0 = self.score(labels, nodes)
         start_score = score0
         labels = self.ls_on_patients(nodes)
         #if self.verbose:
